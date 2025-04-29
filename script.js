@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize tooltip
     initTooltip();
+    
+    // Check localStorage for saved data and restore if available
+    restoreDataFromLocalStorage();
 
     // --- File Input Handling ---
     dropZone.addEventListener('click', () => fileInput.click());
@@ -54,7 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
-                    const jsonData = JSON.parse(e.target.result);
+                    const jsonText = e.target.result;
+                    const jsonData = JSON.parse(jsonText);
+                    // Save to localStorage
+                    saveToLocalStorage(jsonText);
                     currentJsonData = jsonData;
                     renderForceDirectedTree(currentJsonData);
                 } catch (error) {
@@ -70,6 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Text Input Handling ---
     loadJsonButton.addEventListener('click', () => {
+        processTextInput();
+    });
+    
+    // Allow pressing Enter in the text input to submit
+    jsonTextInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && event.ctrlKey) {
+            event.preventDefault();
+            processTextInput();
+        }
+    });
+    
+    function processTextInput() {
         const jsonText = jsonTextInput.value.trim();
         if (jsonText) {
             // Show loading
@@ -77,9 +95,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             try {
                 const jsonData = JSON.parse(jsonText);
+                // Save to localStorage
+                saveToLocalStorage(jsonText);
                 currentJsonData = jsonData;
                 renderForceDirectedTree(currentJsonData);
-                jsonTextInput.value = ''; // Clear input after successful load
+                // Don't clear the input, it's useful to keep it for reference
+                // jsonTextInput.value = ''; // Clear input after successful load
             } catch (error) {
                 showError('Error parsing JSON text: ' + error.message);
                 clearVisualization();
@@ -87,7 +108,51 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             showError('Please paste JSON text into the area.');
         }
-    });
+    }
+    
+    // --- Local Storage Functions ---
+    function saveToLocalStorage(jsonText) {
+        try {
+            localStorage.setItem('pluginVisualizerJsonData', jsonText);
+            console.log('Data saved to localStorage');
+        } catch (e) {
+            console.warn('Failed to save to localStorage:', e);
+        }
+    }
+    
+    function restoreDataFromLocalStorage() {
+        try {
+            const savedData = localStorage.getItem('pluginVisualizerJsonData');
+            if (savedData) {
+                console.log('Found saved data, restoring...');
+                jsonTextInput.value = savedData;
+                
+                // Show a message about restored data
+                const notice = document.createElement('div');
+                notice.className = 'bg-primary-50 text-primary-800 p-3 rounded-lg mb-4 flex items-center justify-between';
+                notice.innerHTML = `
+                    <div>
+                        <span class="font-medium">Restored previous data.</span> Your last input has been loaded.
+                    </div>
+                    <button id="load-saved-data" class="text-primary-700 hover:text-primary-900 font-medium">
+                        Load Data
+                    </button>
+                `;
+                
+                // Insert at the top of the input area
+                const inputArea = document.querySelector('.input-area');
+                inputArea.insertBefore(notice, inputArea.firstChild);
+                
+                // Add event listener to the load button
+                document.getElementById('load-saved-data').addEventListener('click', () => {
+                    processTextInput();
+                    notice.remove();
+                });
+            }
+        } catch (e) {
+            console.warn('Failed to restore from localStorage:', e);
+        }
+    }
 
     // --- D3.js Force-Directed Tree Visualization ---
     function renderForceDirectedTree(jsonData) {
