@@ -124,30 +124,24 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const savedData = localStorage.getItem('pluginVisualizerJsonData');
             if (savedData) {
-                console.log('Found saved data, restoring...');
-                jsonTextInput.value = savedData;
+                console.log('Found saved data, restoring and processing...');
+                jsonTextInput.value = savedData; // Keep the data in the textarea for reference
                 
-                // Show a message about restored data
-                const notice = document.createElement('div');
-                notice.className = 'bg-primary-50 text-primary-800 p-3 rounded-lg mb-4 flex items-center justify-between';
-                notice.innerHTML = `
-                    <div>
-                        <span class="font-medium">Restored previous data.</span> Your last input has been loaded.
-                    </div>
-                    <button id="load-saved-data" class="text-primary-700 hover:text-primary-900 font-medium">
-                        Load Data
-                    </button>
-                `;
+                // Directly process the restored data
+                processTextInput();
                 
-                // Insert at the top of the input area
+                // Optionally, show a small, temporary confirmation message instead of a button
+                const confirmation = document.createElement('div');
+                confirmation.className = 'bg-green-100 text-green-800 p-2 rounded text-sm mb-2 fade-out';
+                confirmation.textContent = 'Restored and loaded data from last session.';
+                
                 const inputArea = document.querySelector('.input-area');
-                inputArea.insertBefore(notice, inputArea.firstChild);
+                inputArea.insertBefore(confirmation, inputArea.firstChild);
                 
-                // Add event listener to the load button
-                document.getElementById('load-saved-data').addEventListener('click', () => {
-                    processTextInput();
-                    notice.remove();
-                });
+                // Remove the confirmation after a few seconds
+                setTimeout(() => {
+                    confirmation.remove();
+                }, 5000); // Remove after 5 seconds
             }
         } catch (e) {
             console.warn('Failed to restore from localStorage:', e);
@@ -167,24 +161,57 @@ document.addEventListener('DOMContentLoaded', () => {
         // Convert flat JSON into hierarchical structure for tree layout
         const hierarchyData = convertToHierarchy(jsonData);
         
-        // Set up the SVG container
+        // Set up the SVG container dimensions (enforce 60% height)
         const width = nodeMapCanvas.clientWidth;
-        const height = nodeMapCanvas.clientHeight;
+        const height = width * 0.6; // Calculate height as 60% of width
+        // Force height of the container div
+        nodeMapCanvas.style.height = `${height}px`;
         
         const svg = d3.select("#node-map-canvas")
             .html('') // Clear any previous content
             .append("svg")
             .attr("width", "100%")
-            .attr("height", "100%")
-            .attr("viewBox", [0, 0, width, height])
+            .attr("height", "100%") // Set SVG height to 100% of the container
+            .attr("viewBox", [0, 0, width, height]) // Use calculated dimensions
             .attr("class", "bg-white");
             
         // Create a group for the graph that can be zoomed/panned
         const g = svg.append("g");
+            
+        // Add zoom behavior
+        const zoom = d3.zoom()
+            .scaleExtent([0.1, 3])
+            .on("zoom", (event) => {
+                g.attr("transform", event.transform);
+            });
+            
+        // Apply zoom to the SVG, but filter events on nodes to allow dragging
+        svg.call(zoom).on("dblclick.zoom", null); // Disable double-click zoom
         
-        // Create the tree links (edges)
-        const links = hierarchyData.links();
+        // Prepare nodes and links from hierarchy
+        const root = hierarchyData; // The root of the hierarchy
+        const nodes = root.descendants();
+        const links = root.links();
         
+        // Remove fixed root position - let simulation handle it
+        // root.fx = width / 2;
+        // root.fy = height / 2;
+        
+        // Set up force simulation
+        simulation = d3.forceSimulation(nodes)
+            .force("link", d3.forceLink(links)
+                .id(d => d.id)
+                .distance(d => 50 + getNodeRadius(d.source.data) + getNodeRadius(d.target.data))
+                .strength(1.5)) // Keep link strength high for elasticity
+            .force("charge", d3.forceManyBody().strength(-600)) // Repulsion force
+            .force("center", d3.forceCenter(width / 2, height / 2).strength(0.1)) // Re-enable centering force
+            // Optionally add weak X/Y forces to encourage centering
+            // .force("x", d3.forceX(width / 2).strength(0.05))
+            // .force("y", d3.forceY(height / 2).strength(0.05))
+            .force("collision", d3.forceCollide().radius(d => getNodeRadius(d.data) + 5).strength(1))
+            .on("tick", ticked);
+            
+        // Create the links
         const link = g.append("g")
             .attr("class", "links")
             .attr("stroke", "#999")
@@ -194,9 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .join("line")
             .attr("stroke-width", 1.5);
         
-        // Prepare nodes for simulation
-        const nodes = hierarchyData.descendants();
-        
         // Create the nodes
         const node = g.append("g")
             .attr("class", "nodes")
@@ -204,12 +228,13 @@ document.addEventListener('DOMContentLoaded', () => {
             .data(nodes)
             .join("g")
             .attr("class", d => `node ${d.data.type}`)
+            .call(drag(simulation)) // Apply drag behavior (no root check needed)
             .on("click", function(event, d) {
+                event.stopPropagation(); // Prevent zoom trigger on click
                 // Highlight this node and display its details
                 d3.selectAll(".node").classed("highlighted", false);
                 d3.select(this).classed("highlighted", true);
                 showNodeDetails(d.data.data);
-                event.stopPropagation();
             })
             .on("mouseover", function(event, d) {
                 // Show tooltip
@@ -236,121 +261,48 @@ document.addEventListener('DOMContentLoaded', () => {
             .attr("fill", "#333")
             .attr("font-size", "10px")
             .attr("font-weight", "500");
-        
-        // Set up force simulation
-        simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links)
-                .id(d => d.id)
-                .distance(d => 60 + getNodeRadius(d.source.data) + getNodeRadius(d.target.data))
-                .strength(1))
-            .force("charge", d3.forceManyBody().strength(-700))
-            .force("x", d3.forceX(width / 2).strength(0.1))
-            .force("y", d3.forceY(height / 2).strength(0.1))
-            .force("collision", d3.forceCollide().radius(d => getNodeRadius(d.data) + 10))
-            .on("tick", () => {
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-                
-                node.attr("transform", d => `translate(${d.x},${d.y})`);
-            });
-
-        // Add drag capabilities to nodes
-        node.call(d3.drag()
-            .on("start", dragstarted)
-            .on("drag", dragged)
-            .on("end", dragended));
             
-        function dragstarted(event, d) {
-            if (!event.active) simulation.alphaTarget(0.3).restart();
-            d.fx = d.x;
-            d.fy = d.y;
-            // Prevent event bubbling to stop canvas pan during node drag
-            event.sourceEvent.stopPropagation();
-        }
-        
-        function dragged(event, d) {
-            d.fx = event.x;
-            d.fy = event.y;
-            // Prevent event bubbling to stop canvas pan during node drag
-            event.sourceEvent.stopPropagation();
-        }
-        
-        function dragended(event, d) {
-            if (!event.active) simulation.alphaTarget(0);
-            // Keep the node fixed at its final position
-            // (uncomment the next lines to release the node after dragging)
-            // d.fx = null;
-            // d.fy = null;
-        }
-        
-        // Handle click on background to deselect
-        svg.on("click", () => {
-            d3.selectAll(".node").classed("highlighted", false);
-            displayMessage("Click on a node to see its details.");
-        });
-        
-        // Add zoom behavior AFTER setting up nodes and interactions
-        const zoom = d3.zoom()
-            .scaleExtent([0.1, 3])
-            .on("zoom", (event) => {
-                g.attr("transform", event.transform);
-            });
+        // Tick function to update positions
+        function ticked() {
+            link
+                .attr("x1", d => d.source.x)
+                .attr("y1", d => d.source.y)
+                .attr("x2", d => d.target.x)
+                .attr("y2", d => d.target.y);
             
-        svg.call(zoom);
+            node.attr("transform", d => `translate(${d.x},${d.y})`);
+        }
         
-        // Allow for panning
-        svg.on("mousedown.zoom", null);
-        svg.on("touchstart.zoom", null);
-        
-        // Center the visualization after nodes have positioned
-        simulation.on("end", () => {
-            centerGraph(g, svg, width, height, nodes);
-        });
-        
-        // Apply initial centering if simulation doesn't trigger end event
-        setTimeout(() => {
-            centerGraph(g, svg, width, height, nodes);
-        }, 100);
+        // Add drag capabilities (modified for snap-back)
+        function drag(simulation) { 
+            function dragstarted(event, d) {
+                // Stop propagation to prevent zoom/pan on node drag
+                event.sourceEvent.stopPropagation();
+                if (!event.active) simulation.alphaTarget(0.3).restart(); // Heat up simulation
+                d.fx = d.x; // Fix position during drag
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x; // Update fixed position
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0); // Cool down simulation
+                // Release the fixed position, allowing simulation forces to take over (snap-back)
+                d.fx = null;
+                d.fy = null;
+            }
+            
+            return d3.drag()
+                .on("start", dragstarted)
+                .on("drag", dragged)
+                .on("end", dragended);
+        }
 
         // Hide loading indicator
         hideLoading();
-    }
-    
-    // Function to center the graph
-    function centerGraph(g, svg, width, height, nodes) {
-        if (!nodes || nodes.length === 0) return;
-        
-        // Calculate bounds
-        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-        
-        nodes.forEach(node => {
-            const r = getNodeRadius(node.data);
-            minX = Math.min(minX, node.x - r);
-            maxX = Math.max(maxX, node.x + r);
-            minY = Math.min(minY, node.y - r);
-            maxY = Math.max(maxY, node.y + r);
-        });
-        
-        const graphWidth = maxX - minX;
-        const graphHeight = maxY - minY;
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
-        
-        // Determine scale to fit the graph nicely
-        const scale = 0.8 * Math.min(width / graphWidth, height / graphHeight);
-        const scaleClamped = Math.min(Math.max(scale, 0.1), 2); // Clamp between 0.1 and 2
-        
-        // Apply the transform
-        const transform = d3.zoomIdentity
-            .translate(width / 2 - centerX * scaleClamped, height / 2 - centerY * scaleClamped)
-            .scale(scaleClamped);
-            
-        svg.transition()
-           .duration(750)
-           .call(svg.zoom().transform, transform);
     }
 
     // Convert a JSON structure to D3 hierarchy

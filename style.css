@@ -135,12 +135,10 @@ button:hover {
 #node-map-canvas {
     border: 1px solid #ccc;
     background-color: #fff;
-    /* Set explicit size or make it responsive */
-    width: 95%;
-    height: 500px; /* Example fixed height, adjust as needed */
-    max-width: 1200px; /* Optional max width */
-    margin: 0 auto; /* Center */
     position: relative; /* For D3 positioning */
+    width: 100%; /* Ensure it takes full width of its container */
+    /* Height will be set by JavaScript based on width */
+    margin: 0 auto; /* Center if container allows */
 }
 
 /* Styles for D3 visualization */
