@@ -83,6 +83,22 @@ button:hover {
     background-color: #0056b3;
 }
 
+/* Styles for Example Buttons */
+.example-button {
+    padding: 6px 12px; /* Smaller padding */
+    font-size: 0.875rem; /* Smaller font size */
+    background-color: #6c757d; /* Gray background */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.example-button:hover {
+    background-color: #5a6268; /* Darker gray on hover */
+}
+
 /* Remove display-area styles */
 
 /* Remove tree-view styles */
@@ -160,7 +176,9 @@ button:hover {
 }
 
 .node.highlighted circle {
-    stroke-width: 3px;
+    stroke: #FFBF00;
+    stroke-width: 4px;
+    filter: drop-shadow( 0px 0px 4px rgba(0, 0, 0, 0.4));
 }
 
 /* Customize scrollbars for modern browsers */

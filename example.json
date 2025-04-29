@@ -1,0 +1,235 @@
+{
+    "simple": {
+        "id": "composer-root",
+        "nodeType": "Composer",
+        "children": [
+            {
+                "id": "composer-root-container",
+                "nodeType": "Container",
+                "children": [
+                    { "id": "plugin-a", "nodeType": "Plugin", "classType": "SimplePlugin" },
+                    { "id": "plugin-b", "nodeType": "Plugin", "classType": "AnotherPlugin" }
+                ]
+            }
+        ]
+    },
+    "nested": {
+        "id": "composer-root",
+        "nodeType": "Composer",
+        "children": [
+            {
+                "id": "container-1",
+                "nodeType": "Container",
+                "children": [
+                    { "id": "plugin-c", "nodeType": "Plugin", "classType": "NestedPlugin1" },
+                    { "id": "plugin-d", "nodeType": "Plugin", "classType": "NestedPlugin2" }
+                ]
+            },
+            {
+                "id": "top-level-container",
+                "nodeType": "Container",
+                "children": [
+                    { "id": "plugin-e", "nodeType": "Plugin", "classType": "TopLevelPlugin" }
+                ]
+            }
+        ]
+    },
+    "observers": {
+        "id": "composer-root",
+        "nodeType": "Composer",
+        "children": [
+            {
+                "id": "main-container",
+                "nodeType": "Container",
+                "children": [
+                    {
+                        "id": "plugin-obs",
+                        "nodeType": "Plugin",
+                        "classType": "ObserverPlugin",
+                        "asyncMessageObservers": [
+                            { "nodeType": "AsyncMessageObserver", "messageType": "UserLogin", "handler": "onUserLoginAsync" },
+                            { "nodeType": "AsyncMessageObserver", "messageType": "DataLoaded", "handler": "onDataLoaded" }
+                        ],
+                        "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "StateUpdate", "handler": "onStateUpdateSync" },
+                            { "nodeType": "SyncMessageObserver", "messageType": "DataLoaded", "handler": "syncDataHandler" } 
+                        ]
+                    },
+                    {
+                        "id": "relay-obs",
+                        "nodeType": "Relay",
+                        "classType": "MainRelay",
+                        "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "StateUpdate", "handler": "relayStateUpdate" }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "envs": {
+        "id": "composer-root",
+        "nodeType": "Composer",
+        "children": [
+            {
+                "id": "container-envs",
+                "nodeType": "Container",
+                "environments": [
+                    { "id": "env-api", "nodeType": "Environment", "classType": "ApiConfig", "value": { "url": "https://example.com/api", "timeout": 5000 } },
+                    { "id": "env-feature", "nodeType": "Environment", "classType": "FeatureFlags", "value": { "newUI": true, "betaFeature": false } }
+                ],
+                "children": [
+                    { "id": "plugin-uses-env", "nodeType": "Plugin", "classType": "EnvAwarePlugin" }
+                ]
+            },
+            {
+                "id": "simple-plugin-container",
+                "nodeType": "Container",
+                "environments": [
+                     {
+                        "id": "env-feature-local",
+                        "nodeType": "Environment",
+                        "classType": "FeatureFlags",
+                        "value": { "newUI": false }
+                    }
+                ],
+                "children": [
+                     {
+                        "id": "plugin-simple-env", 
+                        "nodeType": "Plugin", 
+                        "classType": "SimplePlugin"
+                    }
+                ]
+            }
+        ]
+    },
+    "liveRoom": {
+        "id": "live-room-composer",
+        "nodeType": "Composer",
+        "children": [
+            {
+                "id": "core-container",
+                "nodeType": "Container",
+                "environments": [
+                    { "id": "config-env", "nodeType": "Environment", "classType": "RoomConfig", "value": { "roomId": "12345", "streamUrl": "rtmp://...", "chatThrottleMs": 500, "maxUsers": 10000 } },
+                    { "id": "features-env", "nodeType": "Environment", "classType": "FeatureFlags", "value": { "vipEntryEffect": true, "newGiftAnimation": false, "danmakuEnabled": true, "pollsEnabled": true } },
+                    { "id": "mod-config", "nodeType": "Environment", "classType": "ModerationRules", "value": { "spamThreshold": 5, "blockedWords": ["bad", "word"] } }
+                ],
+                "children": [
+                    {
+                        "id": "chat-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "ChatManager",
+                        "asyncMessageObservers": [
+                            { "nodeType": "AsyncMessageObserver", "messageType": "UserEnter", "handler": "displayWelcomeMessage" },
+                            { "nodeType": "AsyncMessageObserver", "messageType": "ChatMessage", "handler": "displayChatMessage" }
+                        ],
+                        "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "MuteUser", "handler": "filterUserMessages" },
+                            { "nodeType": "SyncMessageObserver", "messageType": "ClearChat", "handler": "clearAllMessages" }
+                        ]
+                    },
+                    {
+                        "id": "userlist-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "UserListManager",
+                        "asyncMessageObservers": [
+                             { "nodeType": "AsyncMessageObserver", "messageType": "UserEnter", "handler": "addUserToList" },
+                             { "nodeType": "AsyncMessageObserver", "messageType": "UserLeave", "handler": "removeUserFromList" },
+                             { "nodeType": "AsyncMessageObserver", "messageType": "UserRoleUpdate", "handler": "updateUserBadge" }
+                        ]
+                    },
+                    {
+                        "id": "moderation-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "ModerationService",
+                         "syncMessageObservers": [
+                             { "nodeType": "SyncMessageObserver", "messageType": "ChatMessage", "handler": "checkMessageContent" },
+                             { "nodeType": "SyncMessageObserver", "messageType": "ReportUser", "handler": "handleUserReport" }
+                         ]
+                    },
+                    {
+                        "id": "interaction-relay",
+                        "nodeType": "Relay",
+                        "classType": "InteractionRelay",
+                         "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "LikeClicked", "handler": "broadcastLike" },
+                            { "nodeType": "SyncMessageObserver", "messageType": "GiftSent", "handler": "forwardGiftToPlugins" }
+                         ]
+                    },
+                    {
+                        "id": "stats-relay",
+                        "nodeType": "Relay",
+                        "classType": "StatsCollectorRelay",
+                         "asyncMessageObservers": [
+                             { "nodeType": "AsyncMessageObserver", "messageType": "UserEnter", "handler": "incrementUserCount" },
+                             { "nodeType": "AsyncMessageObserver", "messageType": "UserLeave", "handler": "decrementUserCount" },
+                             { "nodeType": "AsyncMessageObserver", "messageType": "GiftSent", "handler": "recordGiftValue" }
+                         ]
+                    }
+                ]
+            },
+            {
+                "id": "media-container",
+                "nodeType": "Container",
+                "children": [
+                    {
+                        "id": "player-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "VideoPlayer",
+                        "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "StreamStatusUpdate", "handler": "updatePlayerState" },
+                            { "nodeType": "SyncMessageObserver", "messageType": "QualityChangeRequest", "handler": "setPlayerQuality" }
+                        ]
+                    },
+                    {
+                        "id": "danmaku-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "DanmakuOverlay",
+                        "asyncMessageObservers": [
+                            { "nodeType": "AsyncMessageObserver", "messageType": "DanmakuSent", "handler": "displayDanmaku" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "revenue-container",
+                "nodeType": "Container",
+                "children": [
+                    {
+                        "id": "gift-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "GiftProcessor",
+                        "asyncMessageObservers": [
+                            { "nodeType": "AsyncMessageObserver", "messageType": "GiftSent", "handler": "displayGiftAnimation" },
+                            { "nodeType": "AsyncMessageObserver", "messageType": "GiftConfigUpdate", "handler": "reloadGiftAssets" }
+                        ]
+                    },
+                    {
+                        "id": "shop-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "MerchShop",
+                        "asyncMessageObservers": [
+                             { "nodeType": "AsyncMessageObserver", "messageType": "AddToCart", "handler": "handleAddToCart" }
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "interaction-container",
+                "nodeType": "Container",
+                 "children": [
+                     {
+                        "id": "poll-plugin",
+                        "nodeType": "Plugin",
+                        "classType": "PollingSystem",
+                        "syncMessageObservers": [
+                            { "nodeType": "SyncMessageObserver", "messageType": "CreatePoll", "handler": "startNewPoll" },
+                            { "nodeType": "SyncMessageObserver", "messageType": "VotePoll", "handler": "recordVote" }
+                        ]
+                    }
+                 ]
+            }
+        ]
+    }
+} 
