@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plugin System Visualizer</title>
+    <!-- Add syntax highlighting library -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/json.min.js"></script>
+    
+    <!-- Add D3.js for visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Plugin System Visualizer</h1>
+
+    <div class="main-container">
+        <div class="top-panel">
+            <div class="input-area">
+                <h2>Load JSON Data</h2>
+                <div id="drop-zone">
+                    <input type="file" id="file-input" accept=".json" style="display: none;">
+                    <p>Drag & drop a JSON file here, or click to select file.</p>
+                </div>
+                <p>Or paste JSON text below:</p>
+                <textarea id="json-text-input" placeholder="Paste JSON here..."></textarea>
+                <button id="load-json-button">Load JSON from Text</button>
+            </div>
+
+            <div id="node-details">
+                <!-- Selected node details will be shown here -->
+                <p>Load data and click on a node in the map below to see its details.</p>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <h2>Node Map</h2>
+            <div id="node-map-canvas">
+                Your browser does not support the visualization.
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 
